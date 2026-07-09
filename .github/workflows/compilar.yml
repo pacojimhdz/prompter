@@ -9,8 +9,8 @@ jobs:
     - name: Descargar Código
       uses: actions/checkout@v4
 
-    - name: Configurar Java 17 (Requerido por Gradle Moderno)
-      uses: actions/setup-java@v3
+    - name: Configurar Java 17 (Requerido para Android Moderno)
+      uses: actions/setup-java@v4
       with:
         distribution: 'temurin'
         java-version: '17'
@@ -18,10 +18,10 @@ jobs:
     - name: Configurar Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: 16
+        node-version: 20
 
-    - name: Instalar Cordova Estable
-      run: npm install -g cordova@11.0.0
+    - name: Instalar Cordova Moderno
+      run: npm install -g cordova@12.0.0
 
     - name: Crear Estructura Móvil
       run: |
@@ -29,12 +29,12 @@ jobs:
         cp config.xml app-proyecto/config.xml
         cp index.html app-proyecto/www/index.html
         cd app-proyecto
-        cordova platform add android@10.1.2 --save
+        cordova platform add android@12.0.0 --save
 
     - name: Compilar Archivo de Instalación (APK)
       run: |
         cd app-proyecto
-        cordova build android
+        cordova build android --no-telemetry
 
     - name: Guardar Aplicación Resultante
       uses: actions/upload-artifact@v4
