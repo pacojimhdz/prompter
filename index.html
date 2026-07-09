@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teleprompter Pro v8 - Versión Final Monetizable</title>
+    <script src="cordova.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #121214;
+            color: #e1e1e6;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 15px;
+            overflow-x: hidden;
+        }
+
+        h1 { font-size: 1.5rem; margin-bottom: 5px; color: #00e676; text-align: center; }
+        
+        .main-layout { 
+            width: 100%; 
+            max-width: 650px; 
+            margin: 0 auto;
+        }
+
+        .viewport-wrapper-layout {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 15px; 
+            width: 100%;
+            margin-bottom: 15px;
+            position: relative;
+        }
+
+        .viewport-outer-container {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .viewport-outer {
+            width: 100%;
+            background-color: #09090a;
+            border-radius: 12px;
+            border: 3px solid #29292e;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+            overflow: hidden;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .format-16-9 {
+            aspect-ratio: 16 / 9;
+            width: 100%;
+        }
+
+        .viewport-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        video { 
+            width: 100%; 
+            height: 100%; 
+            object-fit: cover; 
+            transform: scaleX(-1); 
+            background-color: transparent; 
+        }
+
+        .prompter-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.65); display: flex;
+            justify-content: center; align-items: flex-start; overflow: hidden; pointer-events: none;
+            opacity: 0; transition: opacity 0.3s ease;
+        }
+
+        .prompter-text {
+            position: absolute; top: 0; width: 85%; text-align: center;
+            font-size: 1.6rem; font-weight: 700; line-height: 1.5; color: #00ff00;
+            text-shadow: 2px 2px 4px #000, -2px -2px 4px #000; white-space: pre-wrap;
+            transform: translateY(0px); will-change: transform;
+        }
+
+        .reading-guide {
+            position: absolute; top: 25%; left: 5%; width: 90%; height: 65px;
+            border-top: 3px solid #ff1744; border-bottom: 3px solid #ff1744;
+            background-color: rgba(255, 23, 68, 0.04); pointer-events: none; z-index: 2;
+        }
+
+        /* Contenedor de controles */
+        .external-floating-controls {
+            display: flex;
+            flex-direction: row;
+            gap: 12px;
+            justify-content: center;
+            width: 100%;
+        }
+
+        /* Estilo base de los botones con texto interno */
+        .btn-floating {
+            width: 65px;
+            height: 65px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #000000;
+            font-size: 0.70rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            text-align: center;
+            line-height: 1.1;
+            padding: 4px;
+        }
+
+        .btn-floating:active { transform: scale(0.92); }
+        .btn-floating:disabled { opacity: 0.3; cursor: not-allowed; box-shadow: none; }
+
+        .btn-start { background-color: #ff8888; border: 2px solid #e53935; } 
+        .btn-pause { background-color: #ffcc00; border: 2px solid #ff8f00; } 
+        .btn-reset { background-color: #8bbfff; border: 2px solid #1e88e5; } 
+        .btn-stop  { background-color: #cccccc; border: 2px solid #888888; }
+
+        .countdown-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.8); display: flex; justify-content: center;
+            align-items: center; font-size: 5rem; font-weight: bold; color: #ff1744;
+            z-index: 10; display: none;
+        }
+
+        .pause-indicator {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.75); color: #ffbc00;
+            padding: 10px 20px; border-radius: 8px; font-weight: bold; font-size: 1rem;
+            border: 2px solid #ffbc00; z-index: 8; display: none; pointer-events: none;
+            text-align: center; width: 80%;
+        }
+
+        .recording-badge { 
+            position: absolute; top: 15px; right: 15px; background-color: #e53935; 
+            color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; 
+            font-weight: bold; display: none; z-index: 5; 
+        }
+
+        .controls-card { 
+            background-color: #202024; border-radius: 12px; padding: 15px; 
+            border: 1px solid #29292e; 
+        }
+
+        label { display: block; font-size: 0.85rem; margin-bottom: 6px; color: #a8a8b3; font-weight: 600; }
+        
+        textarea {
+            width: 100%; height: 110px; padding: 10px; border-radius: 6px; border: 1px solid #29292e;
+            background-color: #121214; color: #fff; font-size: 0.9rem; resize: vertical; line-height: 1.4;
+        }
+
+        .setting-row { 
+            display: flex; justify-content: space-between; align-items: center; 
+            background-color: #121214; padding: 10px; border-radius: 6px; margin-bottom: 12px; gap: 15px; 
+        }
+        
+        input[type="range"] { flex: 1; accent-color: #00e676; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <h1>Teleprompter Pro v8 - Final Monetizable</h1>
+    
+    <div style="text-align: center; margin-bottom: 20px;">
+        <a href="https://mpago.la/29B8quX" target="_blank" style="display: inline-block; background-color: #009ee3; color: white; font-family: 'Segoe UI', Arial, sans-serif; font-weight: bold; padding: 12px 24px; border-radius: 6px; text-decoration: none;">
+            Donar con Mercado Pago
+        </a>
+    </div>
+
+    <div class="main-layout">
+        
+        <div class="viewport-wrapper-layout">
+            <div class="viewport-outer-container">
+                <div id="viewportOuter" class="viewport-outer format-16-9">
+                    <div id="viewportContainer" class="viewport-container">
+                        <video id="video" autoplay playsinline muted></video>
+                        <div class="prompter-overlay"><div id="prompterText" class="prompter-text"></div></div>
+                        <div class="reading-guide"></div>
+                        <div id="countdown" class="countdown-overlay">3</div>
+                        <div id="pauseIndicator" class="pause-indicator">PROMPTER PAUSADO</div>
+                        <div id="recordingBadge" class="recording-badge">🔴 GRABANDO</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="external-floating-controls">
+                <button id="startBtn" class="btn-floating btn-start">Grabar</button>
+                <button id="pauseBtn" class="btn-floating btn-pause" disabled>Pausa</button>
+                <button id="resetBtn" class="btn-floating btn-reset">Reiniciar</button>
+                <button id="stopBtn" class="btn-floating btn-stop" disabled>Guardar</button>
+            </div>
+        </div>
+
+        <div class="controls-card">
+            <textarea id="textInput" placeholder="Pega o escribe tu guion aquí..."></textarea>
+            
+            <div class="setting-row">
+                <label for="speedRange">Velocidad (PPM)</label>
+                <input type="range" id="speedRange" min="130" max="300" value="215" step="5">
+            </div>
+            
+            </div>
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const textInput = document.getElementById('textInput');
+        const prompterText = document.getElementById('prompterText');
+        const startBtn = document.getElementById('startBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const speedRange = document.getElementById('speedRange');
+        const countdownOverlay = document.getElementById('countdown');
+        const recordingBadge = document.getElementById('recordingBadge');
+        const pauseIndicator = document.getElementById('pauseIndicator');
+        const viewportContainer = document.getElementById('viewportContainer');
+
+        let mediaRecorder = null;
+        let recordedChunks = [];
+        let animationFrameId = null;
+        
+        let currentScrollY = 0;
+        let lastTime = 0;
+        let isRecording = false;
+        let isPaused = false;
+        let pixelesPorMilisegundo = 0;
+
+        // FUNCIÓN MODIFICADA PARA SOLUCIONAR EL AUDIO EN LA APP NATIVA
+        async function initCamera() {
+            try {
+                // DESACTIVAR FILTROS AUTOMÁTICOS PARA FIJAR EL VOLUMEN
+                const constraints = {
+                    video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" },
+                    audio: {
+                        echoCancellation: false,
+                        noiseSuppression: false,
+                        autoGainControl: false
+                    }
+                };
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                window.streamRef = stream;
+                video.srcObject = stream;
+            } catch (err) {
+                alert("Por favor concede los permisos de cámara y micrófono.");
+            }
+        }
+
+        // ESCOUCHA EL EVENTO DE CORDOVA PARA INICIAR LA CÁMARA CUANDO LA APP ESTÉ LISTA
+        document.addEventListener('deviceready', () => {
+            initCamera();
+            setTimeout(resetPrompterPosition, 500);
+        }, false);
+
+        // EL RESTO DEL CÓDIGOSIGUE IGUAL...
+        // ... (Funciones de scroll, grabación, pausa, etc.)
+
+        function scrollText(timestamp) {
+            if (isPaused) { lastTime = 0; return; }
+            if (!lastTime) lastTime = timestamp;
+            const deltaTime = timestamp - lastTime;
+            lastTime = timestamp;
+            currentScrollY -= (pixelesPorMilisegundo * deltaTime); 
+            prompterText.style.transform = `translateY(${currentScrollY}px)`;
+            const textHeight = prompterText.clientHeight;
+            const containerHeight = viewportContainer.clientHeight;
+            if (Math.abs(currentScrollY) > (textHeight + containerHeight)) {
+                stopRecordingWorkflow();
+            } else {
+                animationFrameId = requestAnimationFrame(scrollText);
+            }
+        }
+
+        function resetPrompterPosition() {
+            const guideTop = document.querySelector('.reading-guide').offsetTop;
+            currentScrollY = guideTop; 
+            prompterText.style.transform = `translateY(${currentScrollY}px)`;
+        }
+
+        function updateDurationEstimate() {
+            const texto = textInput.value.trim();
+            prompterText.innerText = texto;
+            if (!texto) return;
+            const totalPalabras = texto.split(/\s+/).filter(p => p.length > 0).length;
+            const ppmSeleccionadas = parseInt(speedRange.value);
+            const tiempoTotalSegundos = Math.ceil((totalPalabras / ppmSeleccionadas) * 60);
+            const textHeight = prompterText.clientHeight;
+            if (textHeight > 0) {
+                const tiempoTotalMilisegundos = tiempoTotalSegundos * 1000;
+                pixelesPorMilisegundo = textHeight / tiempoTotalMilisegundos;
+            }
+        }
+
+        function togglePause() {
+            if (!isRecording) return;
+            isPaused = !isPaused;
+            if (isPaused) {
+                pauseIndicator.style.display = 'block';
+                pauseBtn.innerText = "Seguir";
+            } else {
+                pauseIndicator.style.display = 'none';
+                pauseBtn.innerText = "Pausa";
+                lastTime = 0;
+                animationFrameId = requestAnimationFrame(scrollText);
+            }
+        }
+
+        startBtn.addEventListener('click', () => {
+            const texto = textInput.value.trim();
+            if (!texto) return alert("Ingresa un guion primero.");
+            startBtn.disabled = true;
+            recordedChunks = [];
+            updateDurationEstimate();
+            resetPrompterPosition();
+            isRecording = false;
+            isPaused = false;
+            countdownOverlay.style.display = 'flex';
+            let count = 3;
+            countdownOverlay.innerText = count;
+            const interval = setInterval(() => {
+                count--;
+                if (count > 0) {
+                    countdownOverlay.innerText = count;
+                } else {
+                    clearInterval(interval);
+                    countdownOverlay.style.display = 'none';
+                    startRecordingAndScroll();
+                }
+            }, 1000);
+        });
+
+        function startRecordingAndScroll() {
+            if (window.streamRef) {
+                // Activa la máscara oscura
+                document.querySelector('.prompter-overlay').style.opacity = '1';
+                mediaRecorder = new MediaRecorder(window.streamRef);
+                recordedChunks = [];
+                mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) recordedChunks.push(e.data); };
+                mediaRecorder.onstop = saveVideo;
+                mediaRecorder.start();
+                isRecording = true;
+                recordingBadge.style.display = 'block';
+                pauseBtn.disabled = false;
+                stopBtn.disabled = false;
+                lastTime = 0;
+                animationFrameId = requestAnimationFrame(scrollText);
+            }
+        }
+
+        function saveVideo() {
+            const blob = new Blob(recordedChunks, { type: 'video/mp4' });
+            // CÓDIGO DE CORDOVA PARA GUARDAR EN LA GALERÍA (Necesita Plugin)
+            // Por ahora lo descargamos como en la web, el compilador lo ajustará
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `video_teleprompter_${Date.now()}.mp4`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        function stopRecordingWorkflow() {
+            isRecording = false;
+            isPaused = false;
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+            document.querySelector('.prompter-overlay').style.opacity = '0';
+            recordingBadge.style.display = 'none';
+            pauseIndicator.style.display = 'none';
+            startBtn.disabled = false;
+            pauseBtn.disabled = true;
+            stopBtn.disabled = true;
+            resetPrompterPosition();
+        }
+
+        pauseBtn.addEventListener('click', togglePause);
+        stopBtn.addEventListener('click', stopRecordingWorkflow);
+        textInput.addEventListener('input', updateDurationEstimate);
+        
+        // Carga inicial limpia
+        document.querySelector('.prompter-overlay').style.opacity = '0';
+    </script>
+</body>
+</html>
