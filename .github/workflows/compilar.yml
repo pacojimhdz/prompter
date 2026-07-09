@@ -20,6 +20,11 @@ jobs:
       with:
         node-version: 20
 
+    - name: Instalar Android Build Tools 33.0.2
+      run: |
+        # Instala la versión exacta de las herramientas de construcción requeridas por Cordova
+        echo "y" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "build-tools;33.0.2" "platforms;android-33"
+
     - name: Instalar Cordova
       run: npm install -g cordova@12.0.0
 
@@ -33,7 +38,6 @@ jobs:
 
     - name: Parchar Incompatibilidad de XmlParser (Corrección Gradle 9+)
       run: |
-        # Este paso repara el script interno de Cordova para que use XmlSlurper en lugar de XmlParser
         SED_FILE="app-proyecto/platforms/android/CordovaLib/cordova.gradle"
         if [ -f "$SED_FILE" ]; then
           sed -i 's/new XmlParser(false, false)/new groovy.xml.XmlSlurper(false, false)/g' "$SED_FILE"
