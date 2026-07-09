@@ -7,12 +7,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Descargar Código
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Configurar Node.js
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
-        node-version: 16
+        node-version: 18
 
     - name: Instalar Cordova
       run: npm install -g cordova
@@ -31,7 +31,7 @@ jobs:
         cordova build android --buildConfig=none
 
     - name: Guardar Aplicación Resultante
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: Teleprompter-Instalable-APK
         path: app-proyecto/platforms/android/app/build/outputs/apk/debug/app-debug.apk
