@@ -20,12 +20,10 @@ jobs:
       with:
         node-version: 20
 
-    - name: Instalar Gradle 8.7 Compatible
-      run: |
-        # Descarga e instala Gradle 8.7 de forma manual para anular Gradle 9.6
-        wget -q https://services.gradle.org/distributions/gradle-8.7-bin:zip
-        sudo unzip -q gradle-8.7-bin:zip -d /opt
-        echo "/opt/gradle-8.7/bin" >> $GITHUB_PATH
+    - name: Forzar Gradle Compatible (Herramienta Oficial)
+      uses: gradle/actions/setup-gradle@v4
+      with:
+        gradle-version: '8.8'
 
     - name: Instalar Android Build Tools 33.0.2
       run: |
@@ -42,7 +40,7 @@ jobs:
         cd app-proyecto
         cordova platform add android@12.0.0 --save
 
-    - name: Parchar Incompatibilidad de XmlParser (Corrección Gradle Viejo)
+    - name: Parchar Incompatibilidad de XmlParser
       run: |
         SED_FILE="app-proyecto/platforms/android/CordovaLib/cordova.gradle"
         if [ -f "$SED_FILE" ]; then
@@ -51,12 +49,8 @@ jobs:
         fi
 
     - name: Compilar Archivo de Instalación (APK)
-      env:
-        CORDOVA_ANDROID_GRADLE_DISTRIBUTION_URL: "https://services.gradle.org/distributions/gradle-8.7-bin.zip"
       run: |
         cd app-proyecto
-        # Forzamos el uso del ejecutable de Gradle 8.7 instalado
-        export PATH="/opt/gradle-8.7/bin:$PATH"
         cordova build android --no-telemetry
 
     - name: Guardar Aplicación Resultante
