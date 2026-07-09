@@ -9,13 +9,19 @@ jobs:
     - name: Descargar Código
       uses: actions/checkout@v4
 
+    - name: Configurar Java 11 (Requerido para Android)
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'temurin'
+        java-version: '11'
+
     - name: Configurar Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: 18
+        node-version: 16
 
-    - name: Instalar Cordova
-      run: npm install -g cordova
+    - name: Instalar Cordova Estable
+      run: npm install -g cordova@11.0.0
 
     - name: Crear Estructura Móvil
       run: |
@@ -23,12 +29,12 @@ jobs:
         cp config.xml app-proyecto/config.xml
         cp index.html app-proyecto/www/index.html
         cd app-proyecto
-        cordova platform add android
+        cordova platform add android@10.1.2 --save
 
     - name: Compilar Archivo de Instalación (APK)
       run: |
         cd app-proyecto
-        cordova build android --buildConfig=none
+        cordova build android --verbose --buildConfig=none
 
     - name: Guardar Aplicación Resultante
       uses: actions/upload-artifact@v4
