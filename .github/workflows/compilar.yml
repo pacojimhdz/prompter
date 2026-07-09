@@ -9,11 +9,11 @@ jobs:
     - name: Descargar Código
       uses: actions/checkout@v4
 
-    - name: Configurar Java 11
+    - name: Configurar Java 17 (Requerido por Gradle Moderno)
       uses: actions/setup-java@v3
       with:
         distribution: 'temurin'
-        java-version: '11'
+        java-version: '17'
 
     - name: Configurar Node.js
       uses: actions/setup-node@v4
