@@ -9,7 +9,7 @@ jobs:
     - name: Descargar Código
       uses: actions/checkout@v4
 
-    - name: Configurar Java 17 (Requerido para Android Moderno)
+    - name: Configurar Java 17
       uses: actions/setup-java@v4
       with:
         distribution: 'temurin'
@@ -20,7 +20,7 @@ jobs:
       with:
         node-version: 20
 
-    - name: Instalar Cordova Moderno
+    - name: Instalar Cordova
       run: npm install -g cordova@12.0.0
 
     - name: Crear Estructura Móvil
@@ -30,6 +30,17 @@ jobs:
         cp index.html app-proyecto/www/index.html
         cd app-proyecto
         cordova platform add android@12.0.0 --save
+
+    - name: Parchar Incompatibilidad de XmlParser (Corrección Gradle 9+)
+      run: |
+        # Este paso repara el script interno de Cordova para que use XmlSlurper en lugar de XmlParser
+        SED_FILE="app-proyecto/platforms/android/CordovaLib/cordova.gradle"
+        if [ -f "$SED_FILE" ]; then
+          sed -i 's/new XmlParser(false, false)/new groovy.xml.XmlSlurper(false, false)/g' "$SED_FILE"
+          echo "Parchado exitoso para compatibilidad con Gradle 9.6.1"
+        else
+          echo "Archivo no encontrado, continuando..."
+        fi
 
     - name: Compilar Archivo de Instalación (APK)
       run: |
